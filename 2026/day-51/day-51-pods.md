@@ -1,23 +1,30 @@
-Day 51 – Wrote My First Kubernetes Pod Manifests ☸️ | #90DaysOfDevOps
+# Day 51 – Kubernetes Pods & Manifests
 
-Today I created and managed my first Pods in Kubernetes using YAML manifests.
+Today I created my first Kubernetes Pods using YAML manifests.
 
-I learned about:
+---
 
-apiVersion, kind, metadata, spec
-kubectl apply vs kubectl run
-Pod logs and exec
-Labels and filtering
-Declarative vs Imperative approach
+## Kubernetes Manifest Structure
 
-One interesting thing I learned today 👇
-Containers inside a Pod stop immediately if no long-running process is running. That’s why commands like sleep 3600 are used in BusyBox containers.
+Required fields:
 
-Seeing my Pods in Running state felt exciting 🚀
+- apiVersion
+- kind
+- metadata
+- spec
 
-#90DaysOfDevOps
-#DevOpsKaJosh
-#Kubernetes
-#K8s
-#DevOpsJourney
-#TrainWithShubham
+---
+
+## First Pod – Nginx
+
+Created:
+- nginx-pod.yaml
+
+Commands used:
+
+```bash
+kubectl apply -f nginx-pod.yaml
+kubectl get pods
+kubectl describe pod nginx-pod
+kubectl logs nginx-pod
+kubectl exec -it nginx-pod -- /bin/bash
