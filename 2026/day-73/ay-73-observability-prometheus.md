@@ -69,3 +69,119 @@ Started Prometheus using:
 
 ```bash
 docker compose up -d
+
+# Verified
+
+Verified:
+
+- Prometheus Dashboard accessible
+- Prometheus running successfully
+- Prometheus configuration loaded correctly
+- Docker containers running without errors
+
+---
+
+# Scrape Targets
+
+Configured:
+
+- Prometheus Self Monitoring
+- Sample Application Target
+
+Verified:
+
+- Prometheus Target → UP
+- Notes App Target → UP
+
+---
+
+# PromQL Queries
+
+Practiced:
+
+```promql
+up
+```
+
+```promql
+process_resident_memory_bytes
+```
+
+```promql
+prometheus_http_requests_total
+```
+
+```promql
+rate(prometheus_http_requests_total[5m])
+```
+
+```promql
+count({__name__=~".+"})
+```
+
+Learned how PromQL helps query real-time metrics collected by Prometheus.
+
+---
+
+# Counter vs Gauge
+
+### Counter
+
+Only increases over time.
+
+Examples:
+
+- Total HTTP Requests
+- Login Count
+- API Requests
+
+### Gauge
+
+Can increase or decrease.
+
+Examples:
+
+- CPU Usage
+- Memory Usage
+- Active Users
+- Disk Usage
+
+---
+
+# Prometheus Storage (TSDB)
+
+Learned:
+
+- Prometheus stores metrics inside its built-in Time Series Database (TSDB).
+- Default data retention is **15 days**.
+- Docker Volume Mounting keeps metrics safe even if the container restarts.
+- Retention can be configured based on time or storage size.
+
+---
+
+# Verification
+
+Verified:
+
+- Prometheus Dashboard accessible
+- Targets showing **UP**
+- PromQL queries returning live data
+- Metrics collected successfully
+- Sample application monitored by Prometheus
+
+---
+
+# Key Learning
+
+Today I learned:
+
+- Observability
+- Monitoring vs Observability
+- Three Pillars of Observability
+- Prometheus Architecture
+- Docker Compose
+- Scrape Targets
+- PromQL Basics
+- Counter vs Gauge
+- Prometheus TSDB
+- Metrics Collection
