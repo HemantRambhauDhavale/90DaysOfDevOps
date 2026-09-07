@@ -1,6 +1,6 @@
 # Day 85 — ArgoCD Deep Dive
 
-## 🚀 What I Learned Today
+##  What I Learned Today
 
 Today I went deeper into **ArgoCD** and learned how it can be used to manage Kubernetes applications in a more controlled and production-oriented way.
 
@@ -620,6 +620,6 @@ And when something goes wrong, the goal is not just to fix the cluster.
 
 The goal is to bring the **desired state, Git history, and cluster state back into alignment**.
 
-Day 85 completed. 🚀
+Day 85 completed. 
 
 #90DaysOfDevOps #DevOps #GitOps #ArgoCD #Kubernetes #AWS
