@@ -1,386 +1,558 @@
-# Day 87 – Introduction to Agentic AI for DevOps
+# Day 88 — Multi-Tool DevOps Agent, MCP & CI/CD Analyzer
 
-## What I Learned
+##  Day 88 Overview
 
-Today I started a new part of my 90 Days of DevOps journey: **Agentic AI for DevOps**.
+Today I extended the DevOps AI agent to work with more than one DevOps area.
 
-Until now, most of my work was around Linux, Docker, CI/CD, Kubernetes, Terraform, Ansible, monitoring, Helm, EKS and GitOps. Today I learned how AI agents can be connected with DevOps tools and actually use them to investigate problems.
+The main focus was:
 
-The main difference I understood is:
+- Docker troubleshooting
+- Kubernetes troubleshooting
+- Multi-tool AI agents
+- Model Context Protocol (MCP)
+- MCP server and client
+- GitHub Actions failure analysis
 
-- A **chatbot** mainly gives us text answers.
-- An **AI agent** can use tools, run commands, read the output and decide what to do next.
-
-For example, instead of manually running `docker ps`, `docker logs` and `docker inspect`, an agent can decide which commands it needs to run to find the problem.
+The goal was to understand how an AI agent can use different tools depending on the problem.
 
 ---
 
-## 1. Understanding Agentic AI
+##  What I Built
 
-An AI agent uses an LLM together with tools.
+By the end of this task, the architecture included:
+
+- Docker troubleshooting tools
+- Kubernetes troubleshooting tools
+- A multi-tool DevOps agent
+- An MCP server exposing Kubernetes tools
+- An MCP client connecting the tools to the agent
+- A CI/CD Failure Analyzer for GitHub Actions
+
+---
+
+# 1. Multi-Tool DevOps Agent
+
+Previously, the agent worked with Docker tools.
+
+Now I added Kubernetes tools to the same agent.
+
+## Docker Tools
+
+The Docker side has three tools:
+
+```text
+list_containers()
+get_logs(container_name)
+inspect_container(container_name)
+```
+
+These tools are used for basic Docker troubleshooting.
+
+## Kubernetes Tools
+
+I added three Kubernetes tools:
+
+```text
+list_pods(namespace)
+describe_pod(pod_name, namespace)
+get_events(namespace)
+```
+
+These tools use `kubectl` commands to collect Kubernetes information.
+
+---
+
+# 2. Kubernetes Troubleshooting
+
+For testing, a Kind cluster can be created:
+
+```bash
+kind create cluster --name devops-demo
+```
+
+A deliberately broken pod can then be deployed.
+
+The pod starts and exits with an error after a short time.
+
+This gives the agent a real problem to investigate.
+
+Example questions:
+
+```text
+Why is broken-pod crashing?
+```
+
+```text
+Describe the events in the default namespace
+```
+
+```text
+List the pods in my cluster
+```
+
+The agent decides which Kubernetes tool is useful for the question.
+
+---
+
+# 3. How the Multi-Tool Agent Works
 
 The basic flow is:
 
 ```text
 User Question
-     ↓
-LLM
-     ↓
-Choose a Tool
-     ↓
-Run the Tool
-     ↓
-Read the Output
-     ↓
-Reason Again
-     ↓
-Final Answer
+      ↓
+AI Agent
+      ↓
+Decides which tool to use
+      ↓
+Docker / Kubernetes Tool
+      ↓
+CLI Command
+      ↓
+Command Output
+      ↓
+Agent Analysis
+      ↓
+Answer
 ```
 
-For DevOps, this is useful because we work with many CLI tools such as:
+For example:
+
+```text
+Question about Docker
+        ↓
+Docker tools
+```
+
+While:
+
+```text
+Question about Kubernetes
+        ↓
+Kubernetes tools
+```
+
+And a question involving both can use tools from both domains.
+
+---
+
+# 4. Model Context Protocol (MCP)
+
+## What is MCP?
+
+MCP stands for **Model Context Protocol**.
+
+It provides a standard way for AI applications to connect with external tools and data sources.
+
+Instead of keeping tools directly inside one agent, tools can be exposed through an MCP server.
+
+---
+
+## Why MCP is Useful
+
+Without MCP:
+
+```text
+Tools
+ ↓
+Specific Agent / Framework
+```
+
+With MCP:
+
+```text
+             MCP Server
+          /      |       \
+       Tool    Tool     Tool
+          \      |       /
+           MCP Clients
+```
+
+The same tools can then be used by different MCP-compatible clients.
+
+Examples include:
+
+- Claude Desktop
+- VS Code / GitHub Copilot
+- Cursor
+- Claude Code
+- Python agents
+
+---
+
+# 5. MCP Server
+
+For Kubernetes, the MCP server exposes tools such as:
+
+```text
+list_pods()
+describe_pod()
+get_events()
+```
+
+The server uses FastMCP.
+
+The basic structure is:
+
+```python
+from fastmcp import FastMCP
+
+mcp = FastMCP("Kubernetes Tools")
+```
+
+Tools are registered using:
+
+```python
+@mcp.tool
+```
+
+The server starts with:
+
+```python
+mcp.run()
+```
+
+---
+
+# 6. MCP vs Normal Agent Tools
+
+There is an important difference between normal LangChain tools and MCP tools.
+
+### Normal tool
+
+```python
+@tool
+def list_pods():
+    ...
+```
+
+The tool is defined directly inside the agent application.
+
+### MCP tool
+
+```python
+@mcp.tool
+def list_pods():
+    ...
+```
+
+The tool is registered with the MCP server.
+
+The MCP client can then discover the available tools.
+
+---
+
+# 7. MCP Client
+
+The agent can connect to the MCP server using an MCP client.
+
+The basic flow becomes:
+
+```text
+AI Agent
+    ↓
+MCP Client
+    ↓
+MCP Server
+    ↓
+Kubernetes Tools
+    ↓
+kubectl
+```
+
+The client dynamically discovers the tools from the MCP server.
+
+This means the agent does not need to hardcode every Kubernetes tool locally.
+
+---
+
+# 8. CI/CD Failure Analyzer
+
+The same tool-based agent pattern can also be used for CI/CD troubleshooting.
+
+For this part, the GitHub CLI is used.
+
+First, GitHub CLI authentication is required:
+
+```bash
+gh auth login
+```
+
+The analyzer works with GitHub Actions workflow information.
+
+---
+
+## CI/CD Tools
+
+The analyzer has three main tools:
+
+```text
+list_workflow_runs()
+get_failed_logs()
+get_workflow_file()
+```
+
+### `list_workflow_runs()`
+
+Lists recent GitHub Actions workflow runs.
+
+### `get_failed_logs()`
+
+Gets logs from the failed steps of a workflow run.
+
+### `get_workflow_file()`
+
+Reads a GitHub Actions workflow YAML file.
+
+---
+
+# 9. CI/CD Failure Analysis Flow
+
+The basic process is:
+
+```text
+GitHub Actions Failure
+        ↓
+List failed workflow runs
+        ↓
+Get failed logs
+        ↓
+Read workflow file if required
+        ↓
+Agent analyzes information
+        ↓
+Explain likely failure
+```
+
+Example questions:
+
+```text
+What failed in my last CI run?
+```
+
+```text
+Show me the recent workflow runs
+```
+
+```text
+Read the gitops-ci.yml workflow file and explain what it does
+```
+
+---
+
+# 10. Why Log Truncation Matters
+
+CI/CD logs can become very large.
+
+Sending the entire log to an LLM is not always useful.
+
+The analyzer therefore limits the failed log output.
+
+Example:
+
+```text
+Maximum useful output
+        ↓
+Focused information
+        ↓
+Less unnecessary context
+        ↓
+Better analysis
+```
+
+The example implementation truncates the output to around 5000 characters.
+
+---
+
+# 11. Tool Pattern
+
+The most useful pattern I learned today is that almost any CLI command can become an AI tool.
+
+The general pattern is:
+
+```text
+CLI Command
+     ↓
+Python Tool
+     ↓
+AI Agent
+     ↓
+Tool Selection
+     ↓
+Command Output
+     ↓
+Analysis
+```
+
+This can be used for many DevOps tasks.
+
+Examples:
 
 - Docker
-- kubectl
+- Kubernetes
 - Terraform
 - AWS CLI
 - GitHub CLI
-- Ansible
-
-The agent can use these tools and understand their output.
+- Log searching
 
 ---
 
-## 2. Understanding the ReAct Pattern
+# 12. Possible Custom Tools
 
-The agent I worked with uses the **ReAct pattern**:
+Some examples of tools that can follow the same pattern:
 
-**Reason → Act → Observe**
+### Terraform Plan Analyzer
+
+```text
+terraform plan
+       ↓
+Tool
+       ↓
+Agent explains planned changes
+```
+
+### AWS Resource Checker
+
+```text
+aws ec2 describe-instances
+       ↓
+Tool
+       ↓
+Agent explains EC2 resources
+```
+
+### Kubernetes Log Searcher
+
+```text
+kubectl logs
+       ↓
+Search for keyword
+       ↓
+Return matching pods
+```
+
+---
+
+# 13. Important Lessons
+
+### 1. One agent can use multiple tools
+
+The agent does not need to be limited to one DevOps platform.
+
+### 2. Tool descriptions matter
+
+The tool docstring helps the agent understand when a tool should be used.
 
 For example:
 
-```text
-User: Why is broken-app crashing?
-
-Reason:
-I should check the containers.
-
-Act:
-list_containers()
-
-Observe:
-broken-app is restarting.
-
-Reason:
-I should check its logs.
-
-Act:
-get_logs("broken-app")
-
-Observe:
-The application starts and then exits.
-
-Reason:
-I should inspect the container.
-
-Act:
-inspect_container("broken-app")
-
-Observe:
-Exit code is 1.
-
-Answer:
-The container exits with code 1 after starting.
-```
-
-The important part for me was that I did not manually tell the agent which command to run. The agent selected the tools based on the question.
-
----
-
-## 3. Setting Up the Environment
-
-I cloned the Agentic AI for DevOps repository and created a Python virtual environment.
-
-```bash
-git clone https://github.com/TrainWithShubham/agentic-ai-for-devops.git
-cd agentic-ai-for-devops
-
-python3 -m venv .venv
-source .venv/bin/activate
-
-pip install -r requirements.txt
-```
-
-I also set up Ollama and the Gemma 4 model:
-
-```bash
-ollama serve &
-ollama pull gemma4
-```
-
-Then I checked the model:
-
-```bash
-ollama list
-```
-
-Finally, I ran the setup verification:
-
-```bash
-python3 module-0/verify_setup.py
-```
-
-The expected result was:
-
-```text
-[PASS] Python 3.10+
-[PASS] Docker
-[PASS] kubectl
-[PASS] Kind
-[PASS] Ollama + gemma4
-
-5/5 -- you're ready for Day 1!
-```
-
----
-
-## 4. Docker Error Explainer
-
-The first practical task was simple: give a Docker error to an LLM and let it explain the problem.
-
-The application uses a system prompt like:
-
-```text
-You are a Docker expert. When given a Docker error, explain:
-1. What went wrong
-2. Most likely cause
-3. How to fix it
-Keep it short.
-```
-
-The important thing I learned here was the difference between an LLM call and an agent.
-
-This part does not use tools or an agent loop. It is simply:
-
-```text
-Docker Error
-     ↓
-LLM
-     ↓
-Explanation
-```
-
-I also learned why a lower temperature such as `0.3` is useful for technical answers because it makes the output more deterministic.
-
----
-
-## 5. Building the Docker Troubleshooter Agent
-
-Next, I created a container that intentionally crashes:
-
-```bash
-docker run -d --name broken-app nginx:alpine sh -c "echo 'app starting...' && sleep 2 && exit 1"
-```
-
-Then the agent was given three tools:
-
 ```python
-@tool
-def list_containers() -> str:
-    ...
-
-@tool
-def get_logs(container_name: str) -> str:
-    ...
-
-@tool
-def inspect_container(container_name: str) -> str:
-    ...
+"""List all pods in a Kubernetes namespace with their status."""
 ```
 
-These tools basically wrap Docker commands:
+is more useful than a vague description.
 
-```text
-list_containers()   → docker ps -a
-get_logs()          → docker logs
-inspect_container() → docker inspect
-```
+### 3. MCP makes tools reusable
 
-The `@tool` decorator makes the function available to the agent.
+Instead of tying tools to one agent, MCP allows compatible clients to discover and use them.
 
-One important thing I learned is that the **docstring matters**. The LLM reads the tool description to understand when it should use that tool.
+### 4. Keep LLM input focused
+
+Large logs should be filtered or truncated before sending them to the model.
 
 ---
 
-## 6. Running the Agent
+# 14. Architecture
 
-I ran:
+The overall architecture I learned today looks like this:
+
+```text
+                    User
+                      |
+                      v
+                 AI Agent
+                      |
+             +--------+--------+
+             |                 |
+             v                 v
+        Docker Tools      MCP Client
+                               |
+                               v
+                          MCP Server
+                               |
+                        +------+------+
+                        |      |      |
+                        v      v      v
+                     Pods   Describe Events
+                        |
+                        v
+                     kubectl
+
+
+             CI/CD Analyzer
+                    |
+                    v
+                  gh CLI
+                    |
+                    v
+             GitHub Actions
+```
+
+---
+
+# 15. Day 88 Takeaway
+
+Today I understood how an AI agent can move beyond a single tool.
+
+Instead of manually running every command, the agent can decide which tool is useful based on the question.
+
+I also learned how MCP can separate tools from the agent and make them available to different AI clients.
+
+The main pattern I am taking from today is:
+
+```text
+Define useful tools
+       ↓
+Connect tools to an agent
+       ↓
+Let the agent decide when to use them
+       ↓
+Collect the output
+       ↓
+Explain the result
+```
+
+This makes the idea of AI-powered DevOps troubleshooting much more practical.
+
+---
+
+##  Cleanup
+
+After testing, the Kind cluster and broken container can be removed:
 
 ```bash
-python3 module-2/agent.py
+kind delete cluster --name devops-demo
 ```
 
-Then I asked:
-
-```text
-Why is broken-app crashing?
+```bash
+docker rm -f broken-container 2>/dev/null
 ```
-
-The agent followed the troubleshooting process:
-
-1. Listed the containers.
-2. Found `broken-app` restarting.
-3. Read the container logs.
-4. Inspected the container.
-5. Found the exit code.
-6. Explained the likely reason for the crash.
-
-This was the main difference from a normal chatbot for me.
-
-The agent was not only answering from existing knowledge. It was using the actual Docker environment to collect information first.
 
 ---
 
-## 7. Understanding the Architecture
+##  Reference
 
-The complete flow looked like this:
+TrainWithShubham — Agentic AI for DevOps
 
-```text
-[User Question]
-       |
-       v
-[LLM: Gemma 4]
-       |
-       v
-[Tool Selection]
-       |
-       +----> list_containers() ---> docker ps -a
-       |
-       +----> get_logs() ---------> docker logs
-       |
-       +----> inspect_container() -> docker inspect
-       |
-       v
-[Tool Output]
-       |
-       v
-[LLM reasons again]
-       |
-       v
-[Final Answer]
-```
+Modules covered:
 
-What I found interesting is that the same architecture can be used with other DevOps tools.
-
-For example:
-
-```text
-Docker Tools
-     ↓
-Kubernetes Tools
-     ↓
-Terraform Tools
-     ↓
-AWS CLI Tools
-```
-
-The tools change, but the basic agent pattern remains similar.
+- Module 3
+- Module 6
 
 ---
 
-## 8. Adding My Own Tool
+##  Progress
 
-I also experimented with adding a Docker image tool:
+**Day 88/90 — Completed**
 
-```python
-@tool
-def list_images() -> str:
-    """List all Docker images on this machine with their sizes."""
-    result = subprocess.run(
-        ["docker", "images"],
-        capture_output=True,
-        text=True
-    )
-    return result.stdout or result.stderr
-```
-
-Then I added it to the tools list:
-
-```python
-tools = [
-    list_containers,
-    get_logs,
-    inspect_container,
-    list_images
-]
-```
-
-Now the agent can answer questions about Docker images by calling the new tool.
-
-This helped me understand that a CLI command can be wrapped as a tool and exposed to an AI agent.
-
----
-
-## 9. Important Safety Lesson
-
-I also tried the idea of adding a `restart_container` tool.
-
-That made me think about an important difference between **read-only tools** and **action tools**.
-
-Reading:
-
-```text
-docker ps
-docker logs
-docker inspect
-```
-
-is one thing.
-
-Allowing an agent to run:
-
-```text
-docker restart
-```
-
-is different because the agent can now change the environment.
-
-In a real production setup, guardrails and confirmation should be considered before allowing an AI agent to perform actions automatically.
-
----
-
-## Key Takeaways
-
-Today I learned:
-
-- What an AI agent is.
-- How an agent is different from a normal chatbot.
-- What the ReAct pattern means.
-- How Ollama can run an LLM locally.
-- How LangChain connects an LLM with tools.
-- How Python functions can wrap CLI commands.
-- Why tool docstrings are important.
-- How an agent can troubleshoot a Docker container.
-- Why read-only tools and action tools need different safety considerations.
-- How the same idea can later be used with Kubernetes, Terraform and AWS CLI.
-
-The biggest thing I understood today is that **Agentic AI is not just about asking AI questions. It is about giving AI controlled access to tools so it can investigate a real environment and decide what to do next.**
-
----
-
-## Day 87 Submission
-
-Created:
-
-```text
-2026/day-87/day-87-agentic-ai-intro.md
-```
-
-The documentation covers the agent concept, ReAct pattern, environment setup, Docker Error Explainer, Docker Troubleshooter Agent, architecture, custom tool and system prompt/temperature concepts.
-
----
-
-## What's Next?
-
-Day 88 will move from Docker to **Kubernetes tools**, which should make the agent much more useful for real DevOps troubleshooting.
-
-#90DaysOfDevOps #DevOpsKaJosh #AgenticAI #DevOps #Docker #AI
+Learning step by step and continuing the journey.
+#90DaysOfDevOps #DevOpsKaJosh
