@@ -396,6 +396,6 @@ The biggest takeaway for me was:
 
 > An AI agent should not just be capable of taking action. It should also be controlled, traceable, and able to stop when it is not safe to continue.
 
-Still learning and building step by step. 🚀
+Still learning and building step by step. 
 
 #90DaysOfDevOps #DevOpsKaJosh #AIOps #Kubernetes #AI #DevOps #Temporal #Claude
